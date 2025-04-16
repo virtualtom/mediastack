@@ -1,189 +1,109 @@
-# mediastack
+# 📦 MediaStack
 
-This repository sets up a self-hosted media stack using Docker Compose. It includes:
-
-- Plex Media Server
-- Calibre-Web with ebook-convert support
-- Sonarr, Radarr, Lidarr, Bazarr
-- Jackett and Prowlarr for indexers
-- qBittorrent for torrent downloads
-- (Optional) Guacamole for web-based remote desktop access
-
-## 📁 Folder Structure
-
-```
-/opt/
-└── arrstack/
-    ├── bazarr/
-    │   ├── config/
-    │   └── scripts/
-    ├── jackett/
-    ├── lidarr/
-    ├── prowlarr/
-    ├── radarr/
-    ├── sonarr/
-    ├── downloads/     # shared download target
-    └── media/         # shared media library
-/opt/calibre/
-├── books/
-└── config/
-```
-
-## 🛠 Usage
-
-Clone the repo and run the bootstrap script:
-
-```bash
-git clone git@github.com:virtualtom/mediastack.git /opt/docker/mediastack
-cd /opt/docker/mediastack
-sudo ./bootstrap_docker_stack.sh
-```
-
-## 🔁 Environment Variables
-
-Each service's `docker-compose.yml` uses a `.env` file in the same directory to define:
-
-```env
-PUID=120
-PGID=127
-TZ=America/New_York
-```
-
-These are generated automatically during bootstrap.
-
-## 🔄 Shared Directories
-
-- `/opt/arrstack/downloads`: Shared in-progress download target for *arr apps and qBittorrent
-- `/opt/arrstack/media`: Final media library location used by apps like Plex, Sonarr, Radarr, etc.
-
-## 📦 Repository
-
-Your GitHub repo:
-
-👉 [https://github.com/virtualtom/mediastack](https://github.com/virtualtom/mediastack)
+A modular and automated Docker stack to manage all your media — including Plex, *arr apps (Sonarr, Radarr, Lidarr, etc.), and Calibre-Web — using persistent volumes, custom scripts, and cron jobs. Built for flexibility, easy redeployment, and consistent file permissions using `dockeruser`.
 
 ---
 
-## 🧼 Cleanup & Redeployment Instructions
+## 📁 Directory Structure
 
-If you need to **start fresh** but want to preserve data/configs for specific containers like `calibre`, follow these steps:
+```
+/opt/docker/mediastack/
+├── calibre/                 # Calibre-Web container with ebook-convert support
+├── arrstack/                # All *arr services + shared media + downloads
+│   ├── jackett/
+│   ├── sonarr/
+│   ├── radarr/
+│   ├── lidarr/
+│   ├── prowlarr/
+│   ├── qbittorrent/
+│   ├── plex/
+│   ├── bazarr/
+│   ├── config/              # Shared config volume
+│   ├── downloads/           # Shared download volume
+│   └── media/               # Shared media (tv/movies)
+├── setup_docker_dirs.sh     # Creates required directories + permissions
+└── bootstrap_docker_stack.sh # Installs Docker, clones repo, runs setup
+```
 
-### 🔄 Redeploying with Preserved Configs
+---
 
-1. **Stop all containers**:
+## 🚀 Deployment
+
+> 💡 **Note:** The deployment assumes a user named `dockeruser` with group `docker` exists.  
+> You can create one using:
+> ```bash
+> sudo useradd -m -s /bin/bash -G docker dockeruser
+> ```
+
+> 💡 **Tip:** Set the primary group for `dockeruser` to `docker` so that files cloned or created default to correct ownership:
+> ```bash
+> sudo usermod -g docker dockeruser
+> ```
+
+### Step-by-Step
+
+1. **Log in as root** or a user with sudo access.
+
+2. **Clone the repo to `/opt/docker/mediastack`**:
    ```bash
-   docker compose down
-   ```
-
-2. **Remove container folders but keep config/data folders**:
-   ```bash
-   sudo rm -rf /opt/docker/mediastack/*
-   ```
-
-   > Keep specific folders you want to preserve, such as:
-   > ```
-   > /opt/docker/calibre/books
-   > /opt/docker/calibre/config
-   > ```
-
-3. **Ensure ownership is preserved**:
-   ```bash
-   sudo chown -R dockeruser:docker /opt/docker
-   ```
-
-4. **Clone the repository again**:
-   ```bash
-   sudo -u dockeruser git clone git@github.com:virtualtom/mediastack.git /opt/docker/mediastack
-   ```
-
-5. **Run the bootstrap script**:
-   ```bash
+   sudo git clone git@github.com:virtualtom/mediastack.git /opt/docker/mediastack
    cd /opt/docker/mediastack
-   sudo bash bootstrap_docker_stack.sh
+   ```
+
+3. **Make the bootstrap script executable**:
+   ```bash
+   sudo chmod +x bootstrap_docker_stack.sh
+   ```
+
+4. **Run the bootstrap script** (this installs Docker if needed, pulls the repo, sets up .env files):
+   ```bash
+   sudo ./bootstrap_docker_stack.sh
+   ```
+
+5. **Start the containers**:
+   ```bash
+   cd /opt/docker/mediastack/calibre
+   docker compose up -d
+
+   cd /opt/docker/mediastack/arrstack
+   docker compose up -d
    ```
 
 ---
 
+## 🛠 Cleanup for Redeployment
 
-## 🧠 Deployment Notes
-
-### 🧰 If Cloning the Repo Manually First
-
-Before running the bootstrap script, ensure `/opt/docker` is owned by `dockeruser:docker`:
+To wipe a deployment clean while preserving Calibre:
 
 ```bash
-sudo mkdir -p /opt/docker
-sudo chown dockeruser:docker /opt/docker
+# Optional: Save Calibre library and config
+mv /opt/calibre /opt/calibre_backup
+
+# Remove all stack data
+sudo rm -rf /opt/docker/mediastack
+sudo rm -rf /opt/arrstack
+
+# Restore Calibre if needed
+sudo mv /opt/calibre_backup /opt/calibre
 ```
 
-Clone the repository as `dockeruser`:
-```bash
-sudo -u dockeruser git clone git@github.com:virtualtom/mediastack.git /opt/docker/mediastack
-```
-
-### 📄 .env Files and Permissions
-
-The `bootstrap_docker_stack.sh` script will:
-- Pull or clone the repository
-- Run the directory setup script
-- Generate a `.env` file in each container directory (next to its `docker-compose.yml`)
-- Populate each with correct values using `dockeruser`'s UID/GID
-- Set correct ownership on everything to `dockeruser:docker`
-
-### 🚀 Running the Bootstrap Script Properly
-
-1. Make the script executable:
-   ```bash
-   chmod +x bootstrap_docker_stack.sh
-   ```
-
-2. Run the script **as dockeruser**:
-   ```bash
-   sudo -u dockeruser ./bootstrap_docker_stack.sh
-   ```
-
-✅ This ensures all folders and files are created with the correct ownership.
-
-🚫 Do not run:
-```bash
-sudo bash bootstrap_docker_stack.sh
-```
-> That runs the script as `root` and causes folder ownership issues that will break container access to volumes.
-
-### 🧰 If Cloning the Repo Manually First
-
-- Make sure `/opt/docker` is owned by `dockeruser:docker` before cloning:
-  ```bash
-  sudo mkdir -p /opt/docker
-  sudo chown dockeruser:docker /opt/docker
-  ```
-
-- Clone as `dockeruser`:
-  ```bash
-  sudo -u dockeruser git clone git@github.com:virtualtom/mediastack.git /opt/docker/mediastack
-  ```
-
-### 📄 .env Files and Permissions
-
-- The bootstrap script will:
-  - Clone the repo or pull latest
-  - Run the directory setup script
-  - Generate `.env` files for each service using `dockeruser` UID/GID
-  - Set all ownership to `dockeruser:docker`
+Then see [Deployment](#-deployment) above to start fresh.
 
 ---
 
-## 🧠 Preserving Configs Between Deployments
+## ⚙️ Notes
 
-All containers store persistent data in a `config` folder. To retain settings such as logins, SMTP, UI settings:
+- Each container has:
+  - A `scripts/` folder for your automation
+  - A `crontab.txt` for scheduled tasks
+  - A shared `.env` file (copied per container) with `PUID`, `PGID`, and `TZ`
 
-- **Do not delete the container's config folder**
-- **Ensure correct permissions:**
-  ```bash
-  sudo chown -R dockeruser:docker /opt/docker/[container]/config
-  ```
+- Only the Calibre container includes an active cron job by default. Others have `crontab.txt` placeholders.
 
-This applies to:
-- `calibre` → `/opt/docker/calibre/config`
-- `plex` → `/opt/docker/mediastack/plex/config`
-- `sonarr`, `radarr`, `lidarr`, etc → their respective config folders
+- You can schedule custom scripts by placing them in a container’s `scripts/` folder and editing its `crontab.txt`.
+
+---
+
+## 📄 License
+
+MIT © 2025 VirtualTom
