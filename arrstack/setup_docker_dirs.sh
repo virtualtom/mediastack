@@ -1,12 +1,9 @@
 #!/bin/bash
-# Creates initial config/scripts directories for all containers
 
-containers=(plex sonarr radarr jackett qbittorrent guacamole)
+# Create standard shared directories
+mkdir -p /opt/arrstack/{downloads,media}
 
-for name in "${containers[@]}"; do
-  mkdir -p "/opt/docker/arrstack/$name/config"
-  mkdir -p "/opt/docker/arrstack/$name/scripts"
+# Create per-container config and scripts directories
+for service in bazarr jackett lidarr prowlarr radarr sonarr; do
+  mkdir -p /opt/arrstack/$service/{config,scripts}
 done
-
-mkdir -p "/opt/docker/calibre/config"
-mkdir -p "/opt/docker/calibre/scripts"
