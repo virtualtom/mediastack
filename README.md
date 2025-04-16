@@ -1,4 +1,4 @@
-# arrstack
+# mediastack
 
 A modular, containerized media server stack powered by Docker Compose — featuring Plex, Calibre-Web, and all your favorite *arr* apps.
 
@@ -37,7 +37,7 @@ README.md
 ### 1. Clone the repo (or unpack it)
 
 ```bash
-git clone git@github.com:virtualtom/arrstack.git
+git clone git@github.com:virtualtom/mediastack.git
 cd arrstack
 ```
 
