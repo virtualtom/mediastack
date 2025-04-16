@@ -1,0 +1,16 @@
+version: "3.8"
+services:
+  calibre-web:
+    image: lscr.io/linuxserver/calibre-web:latest
+    container_name: calibre-web
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - /books:/books
+      - ./config:/config
+      - ./scripts:/scripts
+    ports:
+      - 8083:8083
+    restart: unless-stopped

@@ -1,0 +1,13 @@
+version: "3.8"
+services:
+  guacamole:
+    image: lscr.io/linuxserver/guacamole:latest
+    container_name: guacamole
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ./config:/config
+      - ./scripts:/scripts
+    restart: unless-stopped

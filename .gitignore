@@ -1,0 +1,13 @@
+# macOS junk
+.DS_Store
+
+# Logs
+*.log
+
+# Python cache
+__pycache__/
+
+# Secrets
+.env
+*.pem
+*.key
