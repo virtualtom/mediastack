@@ -104,7 +104,51 @@ If you need to **start fresh** but want to preserve data/configs for specific co
 
 ---
 
+
 ## 🧠 Deployment Notes
+
+### 🧰 If Cloning the Repo Manually First
+
+Before running the bootstrap script, ensure `/opt/docker` is owned by `dockeruser:docker`:
+
+```bash
+sudo mkdir -p /opt/docker
+sudo chown dockeruser:docker /opt/docker
+```
+
+Clone the repository as `dockeruser`:
+```bash
+sudo -u dockeruser git clone git@github.com:virtualtom/mediastack.git /opt/docker/mediastack
+```
+
+### 📄 .env Files and Permissions
+
+The `bootstrap_docker_stack.sh` script will:
+- Pull or clone the repository
+- Run the directory setup script
+- Generate a `.env` file in each container directory (next to its `docker-compose.yml`)
+- Populate each with correct values using `dockeruser`'s UID/GID
+- Set correct ownership on everything to `dockeruser:docker`
+
+### 🚀 Running the Bootstrap Script Properly
+
+1. Make the script executable:
+   ```bash
+   chmod +x bootstrap_docker_stack.sh
+   ```
+
+2. Run the script **as dockeruser**:
+   ```bash
+   sudo -u dockeruser ./bootstrap_docker_stack.sh
+   ```
+
+✅ This ensures all folders and files are created with the correct ownership.
+
+🚫 Do not run:
+```bash
+sudo bash bootstrap_docker_stack.sh
+```
+> That runs the script as `root` and causes folder ownership issues that will break container access to volumes.
 
 ### 🧰 If Cloning the Repo Manually First
 
