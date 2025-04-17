@@ -1,130 +1,71 @@
-# Mediastack Deployment
+# mediastack
 
-A containerized media automation stack including:
-- **Calibre-Web** for ebook management
-- Plex, Sonarr, Radarr, Jackett, qBittorrent, etc. (scaffolding included but untested)
-- Cron/script support in every container
-- Centralized directory structure with dynamic bootstrap setup
+A modular Docker-based media server stack. This repo includes individual containers for apps like Plex, Calibre-Web, Sonarr, Radarr, and more. Each container is configured with optional cron job support and script automation.
 
-> ✅ **Calibre container has been fully tested and is production ready. The others are scaffolded and untested.**
+## 📦 Included Services
 
----
+- **Plex** – Media streaming server
+- **Calibre-Web** – eBook server with conversion support
+- **Sonarr** – TV series management
+- **Radarr** – Movie management
+- **Lidarr** – Music management
+- **Bazarr** – Subtitles
+- **qBittorrent** – Torrent client
+- **Jackett** – Torrent indexer proxy
+- **Prowlarr** – Indexer management
+- **Guacamole** – (Optional) web-based remote desktop gateway
 
-## Project Structure
-
-```
-/opt/docker/mediastack/
-├── calibre/             # Calibre-Web container
-│   ├── config/          # Calibre config including app.db
-│   ├── books/           # Library of ebooks (persistent)
-│   ├── scripts/         # Custom cron-enabled scripts
-│   └── docker-compose.yml
-├── arrstack/            # Other media containers (scaffolded)
-│   ├── plex/
-│   ├── sonarr/
-│   ├── radarr/
-│   ├── jackett/
-│   ├── lidarr/
-│   ├── prowlarr/
-│   ├── qbittorrent/
-│   └── ... (each has docker-compose.yml and optional scripts)
-├── bootstrap_docker_stack.sh
-├── setup_docker_dirs.sh
-└── .gitignore
-```
-
----
-
-## Deployment Instructions
-
-### Requirements
-
-- Docker & Docker Compose
-- Git (SSH preferred)
-
----
-
-### 1. Prepare `/opt/docker`
+## 🧰 Deployment
 
 ```bash
-sudo mkdir -p /opt/docker
-sudo chown <your-local-user>:<your-local-group> /opt/docker
-cd /opt/docker
-```
-
-### 2. Clone the Repository via SSH
-
-```bash
-git clone git@github.com:yourusername/mediastack.git
-```
-
-> 💡 If you use SSH keys:
-```bash
-eval "$(ssh-agent -s)"
-ssh-add ~/.ssh/id_ed25519
-```
-
----
-
-### 3. Bootstrap the Stack
-
-```bash
-cd mediastack
-chmod +x bootstrap_docker_stack.sh
+git clone git@github.com:<your-username>/mediastack.git /opt/docker/mediastack
+cd /opt/docker/mediastack
+sudo chown -R <local-user>:docker /opt/docker
+sudo chmod +x bootstrap_docker_stack.sh
 sudo ./bootstrap_docker_stack.sh
 ```
 
-- Creates directory structure
-- Populates `.env` in each service folder
-- Preps empty cron schedules (except Calibre)
+For details about using a local user vs creating a dedicated `dockeruser`, see the section below.
 
----
+## 📄 Migration Guides
 
-## Clean Deployment (Re-deploy)
+- [Calibre Migration Guide](calibre/MIGRATION.md)
 
-To fully clean your test/dev machine before a redeploy:
+## 🔐 SSH Key Setup (Optional for Private Repos)
 
 ```bash
-docker compose down -v  # From each docker-compose directory
-sudo rm -rf /opt/docker/mediastack
-sudo rm -rf /opt/arrstack
-```
-
-To preserve only Calibre's config and books:
-```bash
-# Remove everything except:
-sudo rm -rf /opt/docker/mediastack/arrstack
-```
-
-Then redeploy using the standard bootstrap and compose instructions.
-
----
-
-## Notes on Local User vs `dockeruser`
-
-This stack is configured to allow flexible UID/GID via `.env` files in each service directory.
-
-- You may run the stack as your local user if your media folders are owned by it.
-- Or, you can create a dedicated `dockeruser` and use `chown` to transfer ownership of `/opt/docker`.
-
----
-
-## Making Repo Public
-
-This README is now ready for use in a public GitHub repo. All secrets (e.g. app passwords) should be provided via environment variables or `.env` files and **not committed to source control**.
-
----
-
-## GitHub SSH Setup (Reusable Snippet)
-
-```bash
-# Generate SSH key if you haven't
 ssh-keygen -t ed25519 -C "your_email@example.com"
-
-# Start ssh-agent and add your key
+cat ~/.ssh/id_ed25519.pub
+# Add this key to GitHub SSH settings
 eval "$(ssh-agent -s)"
 ssh-add ~/.ssh/id_ed25519
-
-# Add public key to GitHub:
-cat ~/.ssh/id_ed25519.pub
 ```
+
+## 👤 Notes on Local User vs `dockeruser`
+
+This repo defaults to using a local user (e.g., the one who owns `/plexmedia/books/Library`) to simplify permissions when accessing existing data. If using a `dockeruser`, update `.env` and file ownerships accordingly.
+
+## 🧹 Cleanup for Redeployment
+
+To reset your environment while keeping config or media files:
+
+```bash
+docker compose down
+sudo rm -rf /opt/docker/mediastack/*
+sudo chown -R <local-user>:docker /opt/docker
+```
+
+If you want to preserve Calibre configs and books:
+
+- Do NOT delete `/opt/calibre/config` or `/plexmedia/books/Library`
+
+Then re-run the bootstrap:
+
+```bash
+cd /opt/docker/mediastack
+sudo ./bootstrap_docker_stack.sh
+```
+
+## 📄 License
+
+MIT – see LICENSE
