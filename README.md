@@ -1,115 +1,77 @@
-# MediaStack: Self-Hosted Media Automation Suite
+# 📚 mediastack
 
-This project provides a modular, containerized stack for automating media acquisition, management, and remote access using Docker Compose.
+This repository contains a modular, Docker Compose-based media stack built for self-hosted environments. It includes containerized applications for media management, streaming, and ebook library handling.
 
-## Included Services
+## ✅ Status
 
-- **Plex**: Media server for streaming movies, TV, music, and photos
-- **Calibre-Web**: Web-based interface for Calibre eBook library with conversion tools
-- **Sonarr**: TV series collection manager
-- **Radarr**: Movie collection manager
-- **Lidarr**: Music collection manager
-- **Readarr**: Audiobooks and eBooks management (optional)
-- **Jackett**: Torrent indexer aggregator
-- **qBittorrent**: Torrent client
-- **Bazarr**: Subtitle management
-- **Prowlarr**: Indexer manager and proxy
-- **Apache Guacamole**: Web-based remote desktop gateway (optional)
+Only the **Calibre-Web** container is fully tested and confirmed to support:
 
-All services are defined in individual Docker Compose files under `/opt/docker/mediastack/`.
+- Scheduled import of ebooks
+- Conversion of `.epub` to `.mobi`
+- Integration with the Calibre database via `calibredb`
+- Kindle-compatible workflows
 
-## Folder Structure
+## 🧰 Stack Layout
 
 ```
 /opt/docker/mediastack/
-├── calibre/
-│   ├── docker-compose.yml
-│   ├── scripts/
-│   └── MIGRATION.md
-├── plex/
-├── sonarr/
-├── radarr/
-├── lidarr/
-├── jackett/
-├── bazarr/
-├── prowlarr/
-├── qbittorrent/
-├── guacamole/
-└── setup_docker_dirs.sh
+├── calibre/           # Calibre-Web with cron-based import and conversion
+├── plex/              # Plex Media Server
+├── sonarr/            # TV show automation
+├── radarr/            # Movie automation
+├── jackett/           # Torrent indexer proxy
+├── qbittorrent/       # BitTorrent client
+├── guacamole/         # (Optional) Web-based remote desktop
+├── scripts/           # (Optional) Shared rsync or cron scripts
+└── setup_docker_dirs.sh  # Bootstrap script to set up structure
 ```
 
-## Deployment
+## 🕒 Calibre Watch Script
 
-### 1. Install Docker and Docker Compose
+The `calibre_watch.sh` script, located in `calibre/scripts/`, monitors a directory named `/newbooks` **inside the container**, which is mounted to a host path defined in `docker-compose.yml`.
 
-Make sure your system has Docker and Docker Compose (v2) installed.
+### Features:
 
-### 2. Clone This Repository
+- Watches `/newbooks` for `.epub` and `.mobi` files.
+- Converts `.epub` files to `.mobi` using `ebook-convert` with Kindle Paperwhite 3 output profile.
+- Adds `.mobi` books to the Calibre database using `calibredb`.
+- Cleans up all processed files after conversion and import.
 
+This ensures Kindle compatibility and prevents UTF-8 issues when emailing ebooks to Kindle devices.
+
+> 🔧 Ensure the script is marked as executable:
 ```bash
-git clone git@github.com:youruser/mediastack.git /opt/docker/mediastack
+chmod +x calibre/scripts/calibre_watch.sh
 ```
 
-> ⚠️ You may need to ensure `/opt/docker` is owned by the correct user/group (e.g., `sudo chown -R youruser:docker /opt/docker`).
+## 🧪 Testing Status
 
-### 3. Run the Bootstrap Script
+Only the **calibre** container is considered production-ready. All other containers are present and structured with consistent cron/script volume support but are pending validation.
 
-```bash
-cd /opt/docker/mediastack
-sudo ./bootstrap_docker_stack.sh
-```
+## 📄 Project Documentation
 
-This will:
-- Create folder structures
-- Generate per-container `.env` files
-- Set permissions
-- Optionally deploy containers
+- [Migration Instructions](calibre/MIGRATION.md) — How to migrate from a local Calibre-Web installation.
+- [LICENSE](LICENSE) — MIT License.
 
-### 4. Start the Stack
+## 🔐 Security Setup
 
-Use Docker Compose in each service directory to build and run individual containers:
-
-```bash
-cd /opt/docker/mediastack/calibre
-docker compose up -d --build
-```
-
-## Usage Notes
-
-- `.env` files are located **within each container’s directory**
-- Container ownership defaults to UID/GID of the user running the script
-- Calibre-Web includes `ebook-convert` and `calibredb` support using a custom image built from [linuxserver/calibre-web](https://hub.docker.com/r/linuxserver/calibre-web)
-
-## Custom Scripts and Cron Jobs
-
-Each container includes:
-- A `/scripts` volume for automation scripts
-- Optional `crontab.txt` for scheduling
-
-## Migrating Existing Calibre Library
-
-See `calibre/MIGRATION.md` for migration steps.
-
-## Notes on Local User vs `dockeruser`
-
-You can choose to run containers as your local user (e.g., the user who owns `/plexmedia/books/Library`) or a dedicated `dockeruser`. If using your own user, ensure `.env` files reflect the correct UID and GID.
-
-## Cleanup and Redeployment
-
-See “Deployment” above to start fresh. You may retain `/opt/calibre/config` and `/opt/calibre/books` if you don’t want to lose your library.
-
-
-## SSH Key Setup for GitHub (Optional)
-
-If cloning via SSH, generate an SSH key and add it to your GitHub account:
+Use SSH authentication for GitHub cloning to avoid credential prompts. If you're not already using SSH:
 
 ```bash
 ssh-keygen -t ed25519 -C "your_email@example.com"
-cat ~/.ssh/id_ed25519.pub  # copy this to GitHub → Settings → SSH Keys
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519
+cat ~/.ssh/id_ed25519.pub
 ```
 
-Then clone:
+Add the output to GitHub under **Settings → SSH and GPG Keys**.
 
-```bash
-git clone git@github.com:youruser/mediastack.git
-```
+## 🔒 Notes on Local User vs `dockeruser`
+
+This stack supports running under any non-root user for permission and security reasons. You can customize the `.env` file per container to use your local user account (e.g., UID/GID for a service user).
+
+> 🔁 If you're not using `dockeruser`, ensure that the user account running Docker has full read/write access to mounted config and library paths.
+
+## 📜 License
+
+This project is licensed under the MIT License.
