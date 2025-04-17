@@ -1,109 +1,130 @@
-# 📦 MediaStack
+# Mediastack Deployment
 
-A modular and automated Docker stack to manage all your media — including Plex, *arr apps (Sonarr, Radarr, Lidarr, etc.), and Calibre-Web — using persistent volumes, custom scripts, and cron jobs. Built for flexibility, easy redeployment, and consistent file permissions using `dockeruser`.
+A containerized media automation stack including:
+- **Calibre-Web** for ebook management
+- Plex, Sonarr, Radarr, Jackett, qBittorrent, etc. (scaffolding included but untested)
+- Cron/script support in every container
+- Centralized directory structure with dynamic bootstrap setup
+
+> ✅ **Calibre container has been fully tested and is production ready. The others are scaffolded and untested.**
 
 ---
 
-## 📁 Directory Structure
+## Project Structure
 
 ```
 /opt/docker/mediastack/
-├── calibre/                 # Calibre-Web container with ebook-convert support
-├── arrstack/                # All *arr services + shared media + downloads
-│   ├── jackett/
+├── calibre/             # Calibre-Web container
+│   ├── config/          # Calibre config including app.db
+│   ├── books/           # Library of ebooks (persistent)
+│   ├── scripts/         # Custom cron-enabled scripts
+│   └── docker-compose.yml
+├── arrstack/            # Other media containers (scaffolded)
+│   ├── plex/
 │   ├── sonarr/
 │   ├── radarr/
+│   ├── jackett/
 │   ├── lidarr/
 │   ├── prowlarr/
 │   ├── qbittorrent/
-│   ├── plex/
-│   ├── bazarr/
-│   ├── config/              # Shared config volume
-│   ├── downloads/           # Shared download volume
-│   └── media/               # Shared media (tv/movies)
-├── setup_docker_dirs.sh     # Creates required directories + permissions
-└── bootstrap_docker_stack.sh # Installs Docker, clones repo, runs setup
+│   └── ... (each has docker-compose.yml and optional scripts)
+├── bootstrap_docker_stack.sh
+├── setup_docker_dirs.sh
+└── .gitignore
 ```
 
 ---
 
-## 🚀 Deployment
+## Deployment Instructions
 
-> 💡 **Note:** The deployment assumes a user named `dockeruser` with group `docker` exists.  
-> You can create one using:
-> ```bash
-> sudo useradd -m -s /bin/bash -G docker dockeruser
-> ```
+### Requirements
 
-> 💡 **Tip:** Set the primary group for `dockeruser` to `docker` so that files cloned or created default to correct ownership:
-> ```bash
-> sudo usermod -g docker dockeruser
-> ```
-
-### Step-by-Step
-
-1. **Log in as root** or a user with sudo access.
-
-2. **Clone the repo to `/opt/docker/mediastack`**:
-   ```bash
-   sudo git clone git@github.com:virtualtom/mediastack.git /opt/docker/mediastack
-   cd /opt/docker/mediastack
-   ```
-
-3. **Make the bootstrap script executable**:
-   ```bash
-   sudo chmod +x bootstrap_docker_stack.sh
-   ```
-
-4. **Run the bootstrap script** (this installs Docker if needed, pulls the repo, sets up .env files):
-   ```bash
-   sudo ./bootstrap_docker_stack.sh
-   ```
-
-5. **Start the containers**:
-   ```bash
-   cd /opt/docker/mediastack/calibre
-   docker compose up -d
-
-   cd /opt/docker/mediastack/arrstack
-   docker compose up -d
-   ```
+- Docker & Docker Compose
+- Git (SSH preferred)
 
 ---
 
-## 🛠 Cleanup for Redeployment
-
-To wipe a deployment clean while preserving Calibre:
+### 1. Prepare `/opt/docker`
 
 ```bash
-# Optional: Save Calibre library and config
-mv /opt/calibre /opt/calibre_backup
-
-# Remove all stack data
-sudo rm -rf /opt/docker/mediastack
-sudo rm -rf /opt/arrstack
-
-# Restore Calibre if needed
-sudo mv /opt/calibre_backup /opt/calibre
+sudo mkdir -p /opt/docker
+sudo chown <your-local-user>:<your-local-group> /opt/docker
+cd /opt/docker
 ```
 
-Then see [Deployment](#-deployment) above to start fresh.
+### 2. Clone the Repository via SSH
+
+```bash
+git clone git@github.com:yourusername/mediastack.git
+```
+
+> 💡 If you use SSH keys:
+```bash
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519
+```
 
 ---
 
-## ⚙️ Notes
+### 3. Bootstrap the Stack
 
-- Each container has:
-  - A `scripts/` folder for your automation
-  - A `crontab.txt` for scheduled tasks
-  - A shared `.env` file (copied per container) with `PUID`, `PGID`, and `TZ`
+```bash
+cd mediastack
+chmod +x bootstrap_docker_stack.sh
+sudo ./bootstrap_docker_stack.sh
+```
 
-- Only the Calibre container includes an active cron job by default. Others have `crontab.txt` placeholders.
-
-- You can schedule custom scripts by placing them in a container’s `scripts/` folder and editing its `crontab.txt`.
+- Creates directory structure
+- Populates `.env` in each service folder
+- Preps empty cron schedules (except Calibre)
 
 ---
 
-## 📄 License
+## Clean Deployment (Re-deploy)
 
-MIT © 2025 VirtualTom
+To fully clean your test/dev machine before a redeploy:
+
+```bash
+docker compose down -v  # From each docker-compose directory
+sudo rm -rf /opt/docker/mediastack
+sudo rm -rf /opt/arrstack
+```
+
+To preserve only Calibre's config and books:
+```bash
+# Remove everything except:
+sudo rm -rf /opt/docker/mediastack/arrstack
+```
+
+Then redeploy using the standard bootstrap and compose instructions.
+
+---
+
+## Notes on Local User vs `dockeruser`
+
+This stack is configured to allow flexible UID/GID via `.env` files in each service directory.
+
+- You may run the stack as your local user if your media folders are owned by it.
+- Or, you can create a dedicated `dockeruser` and use `chown` to transfer ownership of `/opt/docker`.
+
+---
+
+## Making Repo Public
+
+This README is now ready for use in a public GitHub repo. All secrets (e.g. app passwords) should be provided via environment variables or `.env` files and **not committed to source control**.
+
+---
+
+## GitHub SSH Setup (Reusable Snippet)
+
+```bash
+# Generate SSH key if you haven't
+ssh-keygen -t ed25519 -C "your_email@example.com"
+
+# Start ssh-agent and add your key
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519
+
+# Add public key to GitHub:
+cat ~/.ssh/id_ed25519.pub
+```
